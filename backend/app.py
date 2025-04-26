@@ -1,36 +1,41 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from sqlalchemy import create_engine, Column, Integer, String, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import json
 import time
+from models import db, User
+from functools import wraps
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-# Database setup
-Base = declarative_base()
-engine = create_engine('sqlite:///jobs.db')
-Session = sessionmaker(bind=engine)
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///jobtrakr.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')
 
-class Job(Base):
+# Initialize database
+db.init_app(app)
+
+# Create Job model using SQLAlchemy
+class Job(db.Model):
     __tablename__ = 'jobs'
     
-    id = Column(Integer, primary_key=True)
-    url = Column(String)
-    title = Column(String)
-    company = Column(String)
-    employment_type = Column(String)  # Full-time, Part-time, Contract
-    experience_level = Column(String)  # Internship, Associate, Mid-Senior
-    status = Column(String, default='New')
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String)
+    title = db.Column(db.String)
+    company = db.Column(db.String)
+    employment_type = db.Column(db.String)  # Full-time, Part-time, Contract
+    experience_level = db.Column(db.String)  # Internship, Associate, Mid-Senior
+    status = db.Column(db.String, default='New')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-Base.metadata.create_all(engine)
+    user = db.relationship('User', backref=db.backref('jobs', lazy=True))
 
 def scrape_job_details(url):
     try:
@@ -347,10 +352,27 @@ def extract_from_url(url):
             'experience_level': 'Unknown'
         }
 
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(' ')[1]
+        
+        if not token:
+            return jsonify({'message': 'Token is missing'}), 401
+
+        user = User.verify_token(token)
+        if not user:
+            return jsonify({'message': 'Invalid token'}), 401
+
+        return f(user, *args, **kwargs)
+    return decorated
+
 @app.route('/api/jobs', methods=['GET'])
-def get_jobs():
-    session = Session()
-    jobs = session.query(Job).all()
+@token_required
+def get_jobs(current_user):
+    jobs = Job.query.filter_by(user_id=current_user.id).all()
     return jsonify([{
         'id': job.id,
         'url': job.url,
@@ -364,7 +386,8 @@ def get_jobs():
     } for job in jobs])
 
 @app.route('/api/jobs', methods=['POST'])
-def add_job():
+@token_required
+def add_job(current_user):
     data = request.json
     url = data.get('url')
     
@@ -375,16 +398,16 @@ def add_job():
     if 'error' in job_details:
         return jsonify({'error': job_details['error']}), 400
     
-    session = Session()
     job = Job(
         url=url,
         title=job_details['title'],
         company=job_details['company'],
         employment_type=job_details['employment_type'],
-        experience_level=job_details['experience_level']
+        experience_level=job_details['experience_level'],
+        user_id=current_user.id
     )
-    session.add(job)
-    session.commit()
+    db.session.add(job)
+    db.session.commit()
     
     return jsonify({
         'id': job.id,
@@ -399,21 +422,21 @@ def add_job():
     })
 
 @app.route('/api/jobs/<int:job_id>', methods=['PUT'])
-def update_job_status(job_id):
+@token_required
+def update_job_status(current_user, job_id):
     data = request.json
     new_status = data.get('status')
     
     if not new_status:
         return jsonify({'error': 'Status is required'}), 400
     
-    session = Session()
-    job = session.query(Job).filter_by(id=job_id).first()
+    job = Job.query.filter_by(id=job_id, user_id=current_user.id).first()
     
     if not job:
         return jsonify({'error': 'Job not found'}), 404
     
     job.status = new_status
-    session.commit()
+    db.session.commit()
     
     return jsonify({
         'id': job.id,
@@ -428,17 +451,69 @@ def update_job_status(job_id):
     })
 
 @app.route('/api/jobs/<int:job_id>', methods=['DELETE'])
-def delete_job(job_id):
-    session = Session()
-    job = session.query(Job).filter_by(id=job_id).first()
+@token_required
+def delete_job(current_user, job_id):
+    job = Job.query.filter_by(id=job_id, user_id=current_user.id).first()
     
     if not job:
         return jsonify({'error': 'Job not found'}), 404
     
-    session.delete(job)
-    session.commit()
+    db.session.delete(job)
+    db.session.commit()
     
     return jsonify({'message': 'Job deleted successfully'})
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.get_json()
+
+    if not all(k in data for k in ['name', 'email', 'password']):
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify({'message': 'Email already registered'}), 400
+
+    user = User(
+        name=data['name'],
+        email=data['email']
+    )
+    user.set_password(data['password'])
+
+    db.session.add(user)
+    db.session.commit()
+
+    token = user.generate_token()
+    return jsonify({
+        'token': token,
+        'user': user.to_dict()
+    }), 201
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.get_json()
+
+    if not all(k in data for k in ['email', 'password']):
+        return jsonify({'message': 'Missing required fields'}), 400
+
+    user = User.query.filter_by(email=data['email']).first()
+
+    if not user or not user.check_password(data['password']):
+        return jsonify({'message': 'Invalid email or password'}), 401
+
+    token = user.generate_token()
+    return jsonify({
+        'token': token,
+        'user': user.to_dict()
+    })
+
+@app.route('/api/auth/profile', methods=['GET'])
+@token_required
+def profile(current_user):
+    return jsonify(current_user.to_dict())
+
+# Create database tables
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
     app.run(debug=True) 

@@ -1,0 +1,97 @@
+.jobscraper-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+form {
+  margin: 20px 0;
+}
+
+.MuiCard-root {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.MuiCard-root:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.MuiChip-root {
+  margin: 4px;
+}
+
+.MuiAppBar-root {
+  background-color: #1976d2;
+}
+
+.MuiContainer-root {
+  padding-bottom: 40px;
+}
+
+/* New styles for job cards */
+.MuiCard-root .MuiCardContent-root {
+  padding: 20px;
+}
+
+.MuiCard-root .MuiTypography-h6 {
+  color: #1976d2;
+  font-weight: 600;
+  margin-right: 32px;
+}
+
+.MuiCard-root .MuiChip-root {
+  font-size: 0.85rem;
+}
+
+.MuiCard-root .MuiFormControl-root {
+  margin-top: 16px;
+}
+
+.MuiCard-root .MuiSelect-select {
+  background-color: white;
+}
+
+/* Status colors */
+.MuiSelect-select[value="New"] {
+  color: #2196f3;
+}
+
+.MuiSelect-select[value="Applied"] {
+  color: #ff9800;
+}
+
+.MuiSelect-select[value="Interviewing"] {
+  color: #9c27b0;
+}
+
+.MuiSelect-select[value="Offered"] {
+  color: #4caf50;
+}
+
+.MuiSelect-select[value="Rejected"] {
+  color: #f44336;
+}
+
+/* Form styles */
+.MuiTextField-root {
+  background-color: white;
+  border-radius: 4px;
+}
+
+.MuiButton-contained {
+  text-transform: none;
+  font-size: 1rem;
+}
+
+/* Welcome text styles */
+.MuiToolbar-root .MuiTypography-subtitle1 {
+  font-weight: 500;
+}
+
+/* Section headings */
+.MuiTypography-h4 {
+  color: #1976d2;
+  font-weight: 600;
+  margin-bottom: 24px;
+} 

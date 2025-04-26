@@ -23,10 +23,17 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import SignIn from './components/SignIn';
+import SignUp from './components/SignUp';
+import Dashboard from './components/Dashboard';
+import './App.css';
 
 const API_URL = 'http://localhost:5000/api';
 
-function App() {
+const App = () => {
   const [jobs, setJobs] = useState([]);
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -96,126 +103,144 @@ function App() {
   };
 
   return (
-    <div>
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6">JobTrakr</Typography>
-        </Toolbar>
-      </AppBar>
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </div>
 
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Box sx={{ mb: 4 }}>
+        <AppBar position="static">
+          <Toolbar>
+            <Typography variant="h6">JobTrakr</Typography>
+          </Toolbar>
+        </AppBar>
+
+        <Container maxWidth="lg" sx={{ mt: 4 }}>
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h4" gutterBottom>
+              Add New Job
+            </Typography>
+            <form onSubmit={handleAddJob}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={8}>
+                  <TextField
+                    fullWidth
+                    label="Job URL"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    type="submit"
+                    disabled={loading}
+                    sx={{ height: '56px' }}
+                  >
+                    {loading ? 'Adding...' : 'Add Job'}
+                  </Button>
+                </Grid>
+              </Grid>
+            </form>
+            {error && (
+              <Typography color="error" sx={{ mt: 2 }}>
+                {error}
+              </Typography>
+            )}
+          </Box>
+
           <Typography variant="h4" gutterBottom>
-            Add New Job
+            Your Jobs
           </Typography>
-          <form onSubmit={handleAddJob}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={8}>
-                <TextField
-                  fullWidth
-                  label="Job URL"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  type="submit"
-                  disabled={loading}
-                  sx={{ height: '56px' }}
-                >
-                  {loading ? 'Adding...' : 'Add Job'}
-                </Button>
-              </Grid>
-            </Grid>
-          </form>
-          {error && (
-            <Typography color="error" sx={{ mt: 2 }}>
-              {error}
-            </Typography>
-          )}
-        </Box>
-
-        <Typography variant="h4" gutterBottom>
-          Your Jobs
-        </Typography>
-        <Grid container spacing={3}>
-          {jobs.map((job) => (
-            <Grid item xs={12} md={6} key={job.id}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Typography variant="h6" gutterBottom>
-                      {job.title}
+          <Grid container spacing={3}>
+            {jobs.map((job) => (
+              <Grid item xs={12} md={6} key={job.id}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Typography variant="h6" gutterBottom>
+                        {job.title}
+                      </Typography>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDeleteClick(job)}
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                    <Typography color="textSecondary" gutterBottom>
+                      {job.company}
                     </Typography>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDeleteClick(job)}
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    {job.company}
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                    <Chip label={job.employment_type} color="secondary" variant="outlined" />
-                    <Chip label={job.experience_level} color="info" variant="outlined" />
-                  </Box>
+                    
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                      <Chip label={job.employment_type} color="secondary" variant="outlined" />
+                      <Chip label={job.experience_level} color="info" variant="outlined" />
+                    </Box>
 
-                  <FormControl fullWidth sx={{ mt: 2 }}>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={job.status}
-                      onChange={(e) => handleStatusChange(job.id, e.target.value)}
-                      label="Status"
-                    >
-                      <MenuItem value="New">New</MenuItem>
-                      <MenuItem value="Applied">Applied</MenuItem>
-                      <MenuItem value="Interviewing">Interviewing</MenuItem>
-                      <MenuItem value="Offered">Offered</MenuItem>
-                      <MenuItem value="Rejected">Rejected</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                    Added: {new Date(job.created_at).toLocaleDateString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+                    <FormControl fullWidth sx={{ mt: 2 }}>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={job.status}
+                        onChange={(e) => handleStatusChange(job.id, e.target.value)}
+                        label="Status"
+                      >
+                        <MenuItem value="New">New</MenuItem>
+                        <MenuItem value="Applied">Applied</MenuItem>
+                        <MenuItem value="Interviewing">Interviewing</MenuItem>
+                        <MenuItem value="Offered">Offered</MenuItem>
+                        <MenuItem value="Rejected">Rejected</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                      Added: {new Date(job.created_at).toLocaleDateString()}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
 
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-      >
-        <DialogTitle>Delete Job</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete this job?
-          </Typography>
-          {jobToDelete && (
-            <Typography variant="subtitle1" sx={{ mt: 2 }}>
-              {jobToDelete.title} at {jobToDelete.company}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={handleDeleteCancel}
+        >
+          <DialogTitle>Delete Job</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete this job?
             </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </div>
+            {jobToDelete && (
+              <Typography variant="subtitle1" sx={{ mt: 2 }}>
+                {jobToDelete.title} at {jobToDelete.company}
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDeleteCancel}>Cancel</Button>
+            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Router>
+    </AuthProvider>
   );
-}
+};
 
 export default App; 
