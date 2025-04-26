@@ -57,4 +57,4 @@ npm start
 1. Open your browser and navigate to `http://localhost:3000`
 2. Add a job URL to start tracking
 3. Update the status as your application progresses
-4. View and manage your job applications 
+4. View and manage your job applications
