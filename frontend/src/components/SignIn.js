@@ -7,22 +7,22 @@ const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
-      const result = await login(email, password);
-      if (result.success) {
-        navigate('/jobscraper');
-      } else {
-        setError(result.error || 'Failed to sign in');
-      }
+      await login(email, password);
+      navigate('/jobscraper');
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError(err.message || 'Failed to sign in');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,6 +40,7 @@ const SignIn = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -50,9 +51,12 @@ const SignIn = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
-          <button type="submit" className="auth-button">Sign In</button>
+          <button type="submit" className="auth-button" disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In'}
+          </button>
         </form>
         <p className="auth-switch">
           Don't have an account?{' '}

@@ -25,6 +25,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
+import { jobService } from '../services/jobService';
 import './JobScraper.css';
 
 const JobScraper = () => {
@@ -43,20 +44,11 @@ const JobScraper = () => {
 
   const fetchJobs = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/jobs', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setJobs(data);
-      } else {
-        setError('Failed to fetch jobs');
-      }
+      const fetchedJobs = await jobService.getJobs();
+      setJobs(fetchedJobs);
     } catch (err) {
       setError('Failed to fetch jobs');
+      console.error('Error fetching jobs:', err);
     }
   };
 
@@ -66,26 +58,17 @@ const JobScraper = () => {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/jobs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ url }),
-      });
-
-      if (response.ok) {
-        const newJob = await response.json();
-        setJobs([...jobs, newJob]);
-        setUrl('');
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to add job');
-      }
+      // First scrape the job details
+      const jobDetails = await jobService.scrapeJobDetails(url);
+      
+      // Then add the job to the database
+      const newJob = await jobService.addJob(jobDetails);
+      
+      setJobs([newJob, ...jobs]);
+      setUrl('');
     } catch (err) {
-      setError('Failed to add job');
+      setError(err.message || 'Failed to add job');
+      console.error('Error adding job:', err);
     } finally {
       setLoading(false);
     }
@@ -93,24 +76,13 @@ const JobScraper = () => {
 
   const handleStatusChange = async (jobId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/jobs/${jobId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (response.ok) {
-        const updatedJob = await response.json();
-        setJobs(jobs.map(job => job.id === jobId ? updatedJob : job));
-      } else {
-        setError('Failed to update job status');
-      }
+      await jobService.updateJobStatus(jobId, newStatus);
+      setJobs(jobs.map(job => 
+        job.id === jobId ? { ...job, status: newStatus } : job
+      ));
     } catch (err) {
       setError('Failed to update job status');
+      console.error('Error updating job status:', err);
     }
   };
 
@@ -121,23 +93,13 @@ const JobScraper = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/jobs/${jobToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        setJobs(jobs.filter(job => job.id !== jobToDelete.id));
-        setDeleteDialogOpen(false);
-        setJobToDelete(null);
-      } else {
-        setError('Failed to delete job');
-      }
+      await jobService.deleteJob(jobToDelete.id);
+      setJobs(jobs.filter(job => job.id !== jobToDelete.id));
+      setDeleteDialogOpen(false);
+      setJobToDelete(null);
     } catch (err) {
       setError('Failed to delete job');
+      console.error('Error deleting job:', err);
     }
   };
 
@@ -148,14 +110,14 @@ const JobScraper = () => {
 
   return (
     <div className="jobscraper-container">
-      <AppBar position="static">
+      <AppBar position="static" className="app-bar">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             JobTrakr
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="subtitle1" sx={{ mr: 2 }}>
-              Welcome, {user?.name}
+            <Typography variant="subtitle1" className="welcome-text">
+              Welcome, {user?.displayName || 'User'}
             </Typography>
             <IconButton color="inherit" onClick={handleLogout}>
               <LogoutIcon />
@@ -164,12 +126,12 @@ const JobScraper = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth="lg">
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant="h4" className="section-heading">
             Add New Job
           </Typography>
-          <form onSubmit={handleAddJob}>
+          <form onSubmit={handleAddJob} className="job-form">
             <Grid container spacing={2}>
               <Grid item xs={12} md={8}>
                 <TextField
@@ -187,93 +149,107 @@ const JobScraper = () => {
                   variant="contained"
                   type="submit"
                   disabled={loading}
-                  sx={{ height: '56px' }}
+                  className="add-job-button"
                 >
                   {loading ? 'Adding...' : 'Add Job'}
                 </Button>
               </Grid>
             </Grid>
+            {error && (
+              <Typography className="error-message">
+                {error}
+              </Typography>
+            )}
           </form>
-          {error && (
-            <Typography color="error" sx={{ mt: 2 }}>
-              {error}
-            </Typography>
-          )}
         </Box>
 
-        <Typography variant="h4" gutterBottom>
-          Your Jobs
-        </Typography>
-        <Grid container spacing={3}>
-          {jobs.map((job) => (
-            <Grid item xs={12} md={6} key={job.id}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Typography variant="h6" gutterBottom>
-                      {job.title}
-                    </Typography>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDeleteClick(job)}
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    {job.company}
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                    <Chip label={job.employment_type} color="secondary" variant="outlined" />
-                    <Chip label={job.experience_level} color="info" variant="outlined" />
-                  </Box>
-
-                  <FormControl fullWidth sx={{ mt: 2 }}>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={job.status}
-                      onChange={(e) => handleStatusChange(job.id, e.target.value)}
-                      label="Status"
-                    >
-                      <MenuItem value="New">New</MenuItem>
-                      <MenuItem value="Applied">Applied</MenuItem>
-                      <MenuItem value="Interviewing">Interviewing</MenuItem>
-                      <MenuItem value="Offered">Offered</MenuItem>
-                      <MenuItem value="Rejected">Rejected</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                    Added: {new Date(job.created_at).toLocaleDateString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <div className="job-grid">
+          <Typography variant="h4" className="section-heading">
+            Your Jobs
+          </Typography>
+          <Grid container spacing={3}>
+            {jobs.map((job) => (
+              <Grid item xs={12} key={job.id}>
+                <Card className="job-card">
+                  <CardContent className="job-card-content">
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <Typography variant="h6" className="job-title" gutterBottom>
+                          {job.title}
+                        </Typography>
+                        <Typography variant="subtitle1" className="job-company" gutterBottom>
+                          {job.company}
+                        </Typography>
+                        <Typography variant="body2" className="job-location" gutterBottom>
+                          {job.location}
+                        </Typography>
+                        {(job.employmentType || job.workplaceType) && (
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            {job.employmentType && (
+                              <Chip
+                                label={job.employmentType}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                                className="job-detail-chip"
+                              />
+                            )}
+                            {job.workplaceType && (
+                              <Chip
+                                label={job.workplaceType}
+                                size="small"
+                                color="secondary"
+                                variant="outlined"
+                                className="job-detail-chip"
+                              />
+                            )}
+                          </Box>
+                        )}
+                      </div>
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                        <FormControl className="status-select" size="small">
+                          <InputLabel>Status</InputLabel>
+                          <Select
+                            value={job.status || 'New'}
+                            onChange={(e) => handleStatusChange(job.id, e.target.value)}
+                            label="Status"
+                            className={`status-select-${(job.status || 'New').toLowerCase()}`}
+                          >
+                            <MenuItem value="New">New</MenuItem>
+                            <MenuItem value="Applied">Applied</MenuItem>
+                            <MenuItem value="Interviewing">Interviewing</MenuItem>
+                            <MenuItem value="Offered">Offered</MenuItem>
+                            <MenuItem value="Rejected">Rejected</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <IconButton
+                          onClick={() => handleDeleteClick(job)}
+                          className="delete-button"
+                          size="small"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </div>
       </Container>
 
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
       >
-        <DialogTitle>Delete Job</DialogTitle>
+        <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete this job?
-          </Typography>
-          {jobToDelete && (
-            <Typography variant="subtitle1" sx={{ mt: 2 }}>
-              {jobToDelete.title} at {jobToDelete.company}
-            </Typography>
-          )}
+          Are you sure you want to delete this job?
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Delete
-          </Button>
+          <Button onClick={handleDeleteConfirm} color="error">Delete</Button>
         </DialogActions>
       </Dialog>
     </div>

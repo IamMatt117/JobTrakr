@@ -1,31 +1,133 @@
 .jobscraper-container {
   min-height: 100vh;
   background-color: #f5f5f5;
+  padding-bottom: 40px;
 }
 
-form {
+/* Form styles */
+.job-form {
   margin: 20px 0;
+  background-color: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.MuiCard-root {
+.job-form .MuiTextField-root {
+  background-color: white;
+  border-radius: 4px;
+}
+
+.add-job-button.MuiButton-contained {
+  height: 56px;
+  text-transform: none;
+  font-size: 1rem;
+}
+
+/* Job card styles */
+.job-card.MuiCard-root {
+  margin-bottom: 16px;
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   border: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: white;
 }
 
-.MuiCard-root:hover {
+.job-card.MuiCard-root:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.MuiChip-root {
-  margin: 4px;
+.job-card-content.MuiCardContent-root {
+  padding: 20px !important;
 }
 
-.MuiAppBar-root {
+.job-title.MuiTypography-h6 {
+  color: #1976d2;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.job-company.MuiTypography-subtitle1 {
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.job-location.MuiTypography-body2 {
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.job-chip.MuiChip-root {
+  margin: 4px;
+  font-size: 0.85rem;
+}
+
+/* Status select styles */
+.status-select.MuiFormControl-root {
+  margin-top: 16px;
+  min-width: 150px;
+}
+
+.status-select .MuiSelect-select {
+  background-color: white;
+}
+
+.status-select-new .MuiSelect-select {
+  color: #2196f3 !important;
+}
+
+.status-select-applied .MuiSelect-select {
+  color: #ff9800 !important;
+}
+
+.status-select-interviewing .MuiSelect-select {
+  color: #9c27b0 !important;
+}
+
+.status-select-offered .MuiSelect-select {
+  color: #4caf50 !important;
+}
+
+.status-select-rejected .MuiSelect-select {
+  color: #f44336 !important;
+}
+
+/* Header styles */
+.app-bar.MuiAppBar-root {
   background-color: #1976d2;
 }
 
+.welcome-text.MuiTypography-subtitle1 {
+  font-weight: 500;
+  margin-right: 16px;
+}
+
+/* Section headings */
+.section-heading.MuiTypography-h4 {
+  color: #1976d2;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+/* Error message */
+.error-message.MuiTypography-root {
+  color: #f44336;
+  margin-top: 16px;
+}
+
+/* Delete button */
+.delete-button.MuiIconButton-root {
+  color: #f44336;
+}
+
+/* Job grid */
+.job-grid {
+  margin-top: 24px;
+}
+
+/* Container spacing */
 .MuiContainer-root {
+  margin-top: 24px;
   padding-bottom: 40px;
 }
 
@@ -73,17 +175,6 @@ form {
   color: #f44336;
 }
 
-/* Form styles */
-.MuiTextField-root {
-  background-color: white;
-  border-radius: 4px;
-}
-
-.MuiButton-contained {
-  text-transform: none;
-  font-size: 1rem;
-}
-
 /* Welcome text styles */
 .MuiToolbar-root .MuiTypography-subtitle1 {
   font-weight: 500;
@@ -94,4 +185,31 @@ form {
   color: #1976d2;
   font-weight: 600;
   margin-bottom: 24px;
+}
+
+.job-detail-chip.MuiChip-root {
+  font-size: 0.75rem;
+  height: 24px;
+}
+
+.job-detail-chip.MuiChip-root.MuiChip-outlined {
+  border-width: 1px;
+}
+
+/* Primary color chip (Employment Type) */
+.job-detail-chip.MuiChip-outlinedPrimary {
+  color: #1976d2;
+  border-color: #1976d2;
+}
+
+/* Secondary color chip (Workplace Type) */
+.job-detail-chip.MuiChip-outlinedSecondary {
+  color: #9c27b0;
+  border-color: #9c27b0;
+}
+
+/* Info color chip (Experience Level) */
+.job-detail-chip.MuiChip-outlinedInfo {
+  color: #0288d1;
+  border-color: #0288d1;
 } 
