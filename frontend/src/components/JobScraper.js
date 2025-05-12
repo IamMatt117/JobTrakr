@@ -29,6 +29,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 import { jobService } from '../services/jobService';
 import './JobScraper.css';
+import { useSnackbar } from 'notistack';
 
 const JobScraper = () => {
   const [jobs, setJobs] = useState([]);
@@ -41,6 +42,7 @@ const JobScraper = () => {
   const [sortOrder, setSortOrder] = useState('newest');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     fetchJobs();
@@ -55,11 +57,15 @@ const JobScraper = () => {
         location: loc || 'Ireland'
       });
       const response = await fetch(`/api/jobs?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`);
+      }
       const fetchedJobs = await response.json();
       setJobs(fetchedJobs.data || []);
       console.log('Fetched jobs:', fetchedJobs.data);
     } catch (err) {
       setError('Failed to fetch jobs');
+      enqueueSnackbar(err.message || 'Failed to fetch jobs', { variant: 'error' });
       console.error('Error fetching jobs:', err);
     } finally {
       setLoading(false);
@@ -112,72 +118,71 @@ const JobScraper = () => {
     return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
+  const handleSaveJob = async (job) => {
+    try {
+      await jobService.saveJob(job);
+      enqueueSnackbar('Job saved!', { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar(error.message || 'Failed to save job.', { variant: 'error' });
+    }
+  };
+
   return (
     <div className="jobscraper-container">
-      <AppBar position="static" className="app-bar">
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            JobTrakr
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Typography variant="subtitle1" className="welcome-text">
-              Welcome, {user?.displayName || 'User'}
-            </Typography>
-            <IconButton color="inherit" onClick={handleLogout}>
-              <LogoutIcon />
-            </IconButton>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" className="section-heading">
+          Search Jobs
+        </Typography>
+        <form onSubmit={handleSearch} className="job-form">
+          <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
+            <TextField
+              fullWidth
+              label="Search Jobs"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by title, company, or keywords"
+              sx={{ flex: 1 }}
+            />
+            <TextField
+              fullWidth
+              label="Location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Enter location"
+              sx={{ flex: 1 }}
+            />
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={loading}
+              className="search-button"
+              startIcon={<SearchIcon />}
+              sx={{ height: '56px', minWidth: '150px' }}
+            >
+              Search
+            </Button>
           </Box>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg">
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" className="section-heading">
-            Search Jobs
-          </Typography>
-          <form onSubmit={handleSearch} className="job-form">
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={5}>
-                <TextField
-                  fullWidth
-                  label="Search Jobs"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by title, company, or keywords"
-                />
-              </Grid>
-              <Grid item xs={12} md={5}>
-                <TextField
-                  fullWidth
-                  label="Location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Enter location"
-                />
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  type="submit"
-                  disabled={loading}
-                  className="search-button"
-                  startIcon={<SearchIcon />}
-                >
-                  Search
-                </Button>
-              </Grid>
-            </Grid>
-            {error && (
-              <Typography className="error-message">
-                {error}
-              </Typography>
-            )}
-          </form>
-
-          {/* Sort dropdown OUTSIDE the form */}
-          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-            <FormControl size="small" sx={{ minWidth: 180 }}>
+          {error && (
+            <Typography className="error-message">
+              {error}
+            </Typography>
+          )}
+        </form>
+      </Box>
+      <div className="job-grid">
+        <Box className="main-content">
+          <Box className="cards-header-row" sx={{ position: 'relative', mb: 3, maxWidth: 950, margin: '0 auto', height: 56 }}>
+            <Typography
+              variant="h4"
+              className="section-heading"
+              sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', mb: 0, width: 'max-content' }}
+            >
+              Available Jobs
+            </Typography>
+            <FormControl
+              size="small"
+              sx={{ minWidth: 180, position: 'absolute', right: -90, top: '50%', transform: 'translateY(-50%)' }}
+            >
               <InputLabel id="sort-label">Sort By</InputLabel>
               <Select
                 labelId="sort-label"
@@ -190,12 +195,6 @@ const JobScraper = () => {
               </Select>
             </FormControl>
           </Box>
-        </Box>
-
-        <div className="job-grid">
-          <Typography variant="h4" className="section-heading">
-            Available Jobs
-          </Typography>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
               <CircularProgress />
@@ -205,7 +204,7 @@ const JobScraper = () => {
               {jobs.length === 0 && (
                 <Typography>No jobs found in Ireland for this search.</Typography>
               )}
-              <Grid container spacing={3}>
+              <Grid container spacing={3} justifyContent="center">
                 {sortedJobs.map((job, idx) => (
                   <Grid item xs={12} sm={6} md={4} key={job.link || idx}>
                     <Card className="job-card simple-job-card">
@@ -239,6 +238,14 @@ const JobScraper = () => {
                             &lt; View Job
                           </Button>
                         </Box>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{ mt: 1, mr: 1 }}
+                          onClick={() => handleSaveJob(job)}
+                        >
+                          Mark as Applied
+                        </Button>
                       </CardContent>
                     </Card>
                   </Grid>
@@ -246,8 +253,8 @@ const JobScraper = () => {
               </Grid>
             </>
           )}
-        </div>
-      </Container>
+        </Box>
+      </div>
 
       <Dialog
         open={deleteDialogOpen}

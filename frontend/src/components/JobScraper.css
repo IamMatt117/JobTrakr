@@ -2,20 +2,48 @@
   min-height: 100vh;
   background-color: #f5f5f5;
   padding-bottom: 40px;
+  padding-top: 32px; /* Add space below navbar */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.main-content {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* Form styles */
 .job-form {
   margin: 20px 0;
   background-color: white;
-  padding: 24px;
+  padding: 24px 32px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.job-form .MuiGrid-container {
+  width: 100%;
+}
+
+.job-form .MuiGrid-item {
+  display: flex;
 }
 
 .job-form .MuiTextField-root {
-  background-color: white;
-  border-radius: 4px;
+  height: 56px;
+}
+
+.job-form .MuiButton-root {
+  min-width: 120px;
+  height: 56px !important;
 }
 
 .add-job-button.MuiButton-contained {
@@ -112,14 +140,29 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 600px) {
-  .job-card-content.MuiCardContent-root {
-    padding: 16px !important;
+@media (max-width: 900px) {
+  .main-content {
+    max-width: 98vw;
+    padding: 0 8px;
   }
-  .job-title.MuiTypography-h6 {
-    font-size: 1.1rem;
+  .job-form {
+    padding: 12px;
   }
 }
+
+@media (max-width: 600px) {
+  .main-content {
+    max-width: 100vw;
+    padding: 0 2px;
+  }
+  .job-form {
+    padding: 6px;
+  }
+  .job-grid .MuiGrid-item {
+    min-width: 100vw;
+  }
+}
+
 /* Status select styles */
 .status-select.MuiFormControl-root {
   margin-top: 16px;
@@ -181,6 +224,7 @@
 /* Job grid */
 .job-grid {
   margin-top: 24px;
+  width: 100%;
 }
 
 /* Container spacing */
@@ -280,39 +324,10 @@
   margin-bottom: 24px;
   max-width: 350px;
   min-width: 280px;
-}
-
-.simple-job-card .MuiCardContent-root {
-  padding: 20px 24px 16px 24px !important;
-}
-
-.simple-job-card .MuiTypography-subtitle1 {
-  color: #222;
-  font-size: 1.1rem;
-}
-
-.simple-job-card .MuiButton-text {
-  color: #1976d2 !important;
-  font-weight: 500;
-  font-size: 0.98rem;
-  padding-left: 0;
-  text-transform: none;
-}
-
-.job-grid .MuiGrid-container {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.job-grid .MuiGrid-item {
-  display: flex;
-}
-
-.simple-job-card.MuiCard-root {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 370px; /* Adjust as needed */
+  min-height: 370px;
   height: 100%;
 }
 
@@ -326,4 +341,16 @@
 
 .simple-job-card .MuiButton-text {
   margin-top: auto;
+}
+
+.sort-dropdown {
+  margin-top: 16px;
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: flex-end;
+  
+}
+
+.job-grid .MuiGrid-item {
+  display: flex;
 }

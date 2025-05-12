@@ -10,6 +10,8 @@ app.use(cors({
   origin: 'http://localhost:3000', // Change this if your frontend runs elsewhere
 }));
 
+let savedJobs = []; // Replace with DB in production
+
 // Proxy route for jobs
 app.get('/api/jobs', async (req, res) => {
   try {
@@ -42,6 +44,25 @@ app.get('/api/jobs', async (req, res) => {
     console.error('Backend error:', err);
     res.status(500).json({ error: 'Failed to fetch jobs', details: err.message });
   }
+});
+
+app.post('/api/saved-jobs', (req, res) => {
+  const job = req.body;
+  job.status = 'Applied';
+  savedJobs.push(job);
+  res.json({ success: true });
+});
+
+app.get('/api/saved-jobs', (req, res) => {
+  res.json({ data: savedJobs });
+});
+
+app.patch('/api/saved-jobs/:id', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  const job = savedJobs.find(j => j.link === id);
+  if (job) job.status = status;
+  res.json({ success: true });
 });
 
 app.listen(PORT, () => {

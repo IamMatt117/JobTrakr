@@ -87,6 +87,8 @@ export const jobService = {
     }
 
     try {
+      console.log('Current user:', auth.currentUser.uid);
+      console.log('updateJobStatus id:', jobId, typeof jobId);
       const jobRef = doc(db, 'jobs', jobId);
       await updateDoc(jobRef, {
         status: status,
@@ -120,6 +122,88 @@ export const jobService = {
     } catch (error) {
       console.error('Error deleting job:', error);
       throw new Error(`Failed to delete job: ${error.message}`);
+    }
+  },
+
+  // Save a job to Firestore
+  saveJob: async (job) => {
+    if (!auth.currentUser) throw new Error('User must be authenticated');
+    try {
+      // Check for duplicate job for this user
+      const q = query(
+        collection(db, 'savedJobs'),
+        where('userId', '==', auth.currentUser.uid),
+        where('id', '==', job.id)
+      );
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        throw new Error('This job is already saved.');
+      }
+      const data = {
+        ...job,
+        userId: auth.currentUser.uid,
+        status: 'Applied',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      const docRef = await addDoc(collection(db, 'savedJobs'), data);
+      return { id: docRef.id, ...data };
+    } catch (error) {
+      console.error('Error saving job:', error);
+      throw new Error(error.message || 'Failed to save job');
+    }
+  },
+
+  // Get all saved jobs for the current user from Firestore
+  getSavedJobs: async () => {
+    if (!auth.currentUser) throw new Error('User must be authenticated');
+    try {
+      const q = query(
+        collection(db, 'savedJobs'),
+        where('userId', '==', auth.currentUser.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      return {
+        data: querySnapshot.docs.map(doc => ({
+          ...doc.data(),
+          firestoreId: doc.id
+        }))
+      };
+    } catch (error) {
+      console.error('Error fetching saved jobs:', error);
+      throw new Error('Failed to fetch saved jobs');
+    }
+  },
+
+  // Update job status in Firestore
+  updateJobStatus: async (id, status) => {
+    if (!auth.currentUser) throw new Error('User must be authenticated');
+    try {
+      console.log('Current user:', auth.currentUser.uid);
+      console.log('updateJobStatus id:', id, typeof id);
+      const jobRef = doc(db, 'savedJobs', String(id));
+      await updateDoc(jobRef, {
+        status: status,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error updating job status:', error);
+      throw new Error('Failed to update job status');
+    }
+  },
+
+  deleteSavedJob: async (firestoreId) => {
+    if (!auth.currentUser) throw new Error('User must be authenticated');
+    try {
+      const jobRef = doc(db, 'savedJobs', firestoreId);
+      const jobDoc = await getDoc(jobRef);
+      if (!jobDoc.exists()) throw new Error('Job not found');
+      const jobData = jobDoc.data();
+      if (jobData.userId !== auth.currentUser.uid) throw new Error('Permission denied');
+      await deleteDoc(jobRef);
+    } catch (error) {
+      console.error('Error deleting saved job:', error);
+      throw new Error(`Failed to delete saved job: ${error.message}`);
     }
   }
 }; 
