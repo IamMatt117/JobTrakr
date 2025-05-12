@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import {
   Container,
   Typography,
-  TextField,
   Button,
   Card,
   CardContent,
@@ -21,20 +20,25 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  CircularProgress,
+  TextField,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 import { jobService } from '../services/jobService';
 import './JobScraper.css';
 
 const JobScraper = () => {
   const [jobs, setJobs] = useState([]);
-  const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [location, setLocation] = useState('Ireland');
+  const [sortOrder, setSortOrder] = useState('newest');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -42,36 +46,29 @@ const JobScraper = () => {
     fetchJobs();
   }, []);
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (search = searchTerm, loc = location) => {
+    setLoading(true);
+    setError('');
     try {
-      const fetchedJobs = await jobService.getJobs();
-      setJobs(fetchedJobs);
+      const params = new URLSearchParams({
+        search: search || 'Software',
+        location: loc || 'Ireland'
+      });
+      const response = await fetch(`/api/jobs?${params.toString()}`);
+      const fetchedJobs = await response.json();
+      setJobs(fetchedJobs.data || []);
+      console.log('Fetched jobs:', fetchedJobs.data);
     } catch (err) {
       setError('Failed to fetch jobs');
       console.error('Error fetching jobs:', err);
-    }
-  };
-
-  const handleAddJob = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      // First scrape the job details
-      const jobDetails = await jobService.scrapeJobDetails(url);
-      
-      // Then add the job to the database
-      const newJob = await jobService.addJob(jobDetails);
-      
-      setJobs([newJob, ...jobs]);
-      setUrl('');
-    } catch (err) {
-      setError(err.message || 'Failed to add job');
-      console.error('Error adding job:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchJobs(searchTerm, location);
   };
 
   const handleStatusChange = async (jobId, newStatus) => {
@@ -108,6 +105,13 @@ const JobScraper = () => {
     navigate('/signin');
   };
 
+  // Sort jobs by date
+  const sortedJobs = [...jobs].sort((a, b) => {
+    const dateA = new Date(a.updated);
+    const dateB = new Date(b.updated);
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+  });
+
   return (
     <div className="jobscraper-container">
       <AppBar position="static" className="app-bar">
@@ -129,29 +133,38 @@ const JobScraper = () => {
       <Container maxWidth="lg">
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" className="section-heading">
-            Add New Job
+            Search Jobs
           </Typography>
-          <form onSubmit={handleAddJob} className="job-form">
+          <form onSubmit={handleSearch} className="job-form">
             <Grid container spacing={2}>
-              <Grid item xs={12} md={8}>
+              <Grid item xs={12} md={5}>
                 <TextField
                   fullWidth
-                  label="Job URL"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required
-                  placeholder="Paste job listing URL here"
+                  label="Search Jobs"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by title, company, or keywords"
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={5}>
+                <TextField
+                  fullWidth
+                  label="Location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Enter location"
+                />
+              </Grid>
+              <Grid item xs={12} md={2}>
                 <Button
                   fullWidth
                   variant="contained"
                   type="submit"
                   disabled={loading}
-                  className="add-job-button"
+                  className="search-button"
+                  startIcon={<SearchIcon />}
                 >
-                  {loading ? 'Adding...' : 'Add Job'}
+                  Search
                 </Button>
               </Grid>
             </Grid>
@@ -161,81 +174,78 @@ const JobScraper = () => {
               </Typography>
             )}
           </form>
+
+          {/* Sort dropdown OUTSIDE the form */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="sort-label">Sort By</InputLabel>
+              <Select
+                labelId="sort-label"
+                value={sortOrder}
+                label="Sort By"
+                onChange={(e) => setSortOrder(e.target.value)}
+              >
+                <MenuItem value="newest">Newest to Oldest</MenuItem>
+                <MenuItem value="oldest">Oldest to Newest</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
         </Box>
 
         <div className="job-grid">
           <Typography variant="h4" className="section-heading">
-            Your Jobs
+            Available Jobs
           </Typography>
-          <Grid container spacing={3}>
-            {jobs.map((job) => (
-              <Grid item xs={12} key={job.id}>
-                <Card className="job-card">
-                  <CardContent className="job-card-content">
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <Typography variant="h6" className="job-title" gutterBottom>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              {jobs.length === 0 && (
+                <Typography>No jobs found in Ireland for this search.</Typography>
+              )}
+              <Grid container spacing={3}>
+                {sortedJobs.map((job, idx) => (
+                  <Grid item xs={12} sm={6} md={4} key={job.link || idx}>
+                    <Card className="job-card simple-job-card">
+                      <CardContent>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1, textAlign: 'left' }}>
                           {job.title}
                         </Typography>
-                        <Typography variant="subtitle1" className="job-company" gutterBottom>
-                          {job.company}
+                        <Typography variant="body2" sx={{ textAlign: 'left' }}>
+                          <strong>Company:</strong> {job.company || 'N/A'}
                         </Typography>
-                        <Typography variant="body2" className="job-location" gutterBottom>
-                          {job.location}
+                        <Typography variant="body2" sx={{ textAlign: 'left' }}>
+                          <strong>Location:</strong> {job.location || 'N/A'}
                         </Typography>
-                        {(job.employmentType || job.workplaceType) && (
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            {job.employmentType && (
-                              <Chip
-                                label={job.employmentType}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                                className="job-detail-chip"
-                              />
-                            )}
-                            {job.workplaceType && (
-                              <Chip
-                                label={job.workplaceType}
-                                size="small"
-                                color="secondary"
-                                variant="outlined"
-                                className="job-detail-chip"
-                              />
-                            )}
-                          </Box>
+                        <Typography variant="body2" sx={{ mt: 1, textAlign: 'left' }}>
+                          <strong>Description:</strong> {job.snippet?.substring(0, 120)}...
+                        </Typography>
+                        {job.updated && (
+                          <Typography variant="body2" sx={{ mt: 1, textAlign: 'left' }}>
+                            <strong>Posted Date:</strong> {new Date(job.updated).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                          </Typography>
                         )}
-                      </div>
-                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                        <FormControl className="status-select" size="small">
-                          <InputLabel>Status</InputLabel>
-                          <Select
-                            value={job.status || 'New'}
-                            onChange={(e) => handleStatusChange(job.id, e.target.value)}
-                            label="Status"
-                            className={`status-select-${(job.status || 'New').toLowerCase()}`}
+                        <Box sx={{ mt: 2, textAlign: 'left' }}>
+                          <Button
+                            variant="text"
+                            size="small"
+                            href={job.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ color: '#1976d2', textTransform: 'none', fontWeight: 500, pl: 0 }}
                           >
-                            <MenuItem value="New">New</MenuItem>
-                            <MenuItem value="Applied">Applied</MenuItem>
-                            <MenuItem value="Interviewing">Interviewing</MenuItem>
-                            <MenuItem value="Offered">Offered</MenuItem>
-                            <MenuItem value="Rejected">Rejected</MenuItem>
-                          </Select>
-                        </FormControl>
-                        <IconButton
-                          onClick={() => handleDeleteClick(job)}
-                          className="delete-button"
-                          size="small"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
+                            &lt; View Job
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
               </Grid>
-            ))}
-          </Grid>
+            </>
+          )}
         </div>
       </Container>
 

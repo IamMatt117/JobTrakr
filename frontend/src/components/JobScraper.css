@@ -25,43 +25,101 @@
 }
 
 /* Job card styles */
+/* Card container */
 .job-card.MuiCard-root {
-  margin-bottom: 16px;
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background-color: white;
+  margin-bottom: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(25, 118, 210, 0.08);
+  border: none;
+  background: #fff;
+  transition: box-shadow 0.2s;
 }
 
 .job-card.MuiCard-root:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 24px rgba(25, 118, 210, 0.15);
 }
 
+/* Card content */
 .job-card-content.MuiCardContent-root {
-  padding: 20px !important;
+  padding: 32px 32px 24px 32px !important;
 }
 
+/* Job title */
 .job-title.MuiTypography-h6 {
   color: #1976d2;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  font-size: 1.5rem;
 }
 
+/* Company and location */
 .job-company.MuiTypography-subtitle1 {
-  color: #666;
-  margin-bottom: 16px;
+  color: #444;
+  font-weight: 500;
+  margin-bottom: 2px;
 }
 
 .job-location.MuiTypography-body2 {
+  color: #888;
+  margin-bottom: 12px;
+}
+
+/* Chips */
+.job-detail-chip.MuiChip-root {
+  margin-right: 8px;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Publisher and qualifications */
+.job-card .job-publisher {
+  margin-top: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.job-card .job-qualifications {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  color: #444;
+}
+
+.job-card .job-qualifications ul {
+  margin: 0;
+  padding-left: 1.5em;
+  color: #444;
+  font-size: 1rem;
+}
+
+.job-card .job-qualifications li {
+  margin-bottom: 4px;
+  text-align: left;
+}
+
+/* Buttons */
+.job-card .MuiButton-outlined {
+  margin-right: 8px;
+  margin-top: 8px;
+}
+
+/* Posted date and salary */
+.job-card .job-meta {
+  margin-top: 8px;
   color: #666;
-  margin-bottom: 16px;
+  font-size: 0.98rem;
+  font-weight: 500;
 }
 
-.job-chip.MuiChip-root {
-  margin: 4px;
-  font-size: 0.85rem;
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .job-card-content.MuiCardContent-root {
+    padding: 16px !important;
+  }
+  .job-title.MuiTypography-h6 {
+    font-size: 1.1rem;
+  }
 }
-
 /* Status select styles */
 .status-select.MuiFormControl-root {
   margin-top: 16px;
@@ -212,4 +270,60 @@
 .job-detail-chip.MuiChip-outlinedInfo {
   color: #0288d1;
   border-color: #0288d1;
-} 
+}
+
+.simple-job-card.MuiCard-root {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(25, 118, 210, 0.08);
+  border: none;
+  background: #fff;
+  margin-bottom: 24px;
+  max-width: 350px;
+  min-width: 280px;
+}
+
+.simple-job-card .MuiCardContent-root {
+  padding: 20px 24px 16px 24px !important;
+}
+
+.simple-job-card .MuiTypography-subtitle1 {
+  color: #222;
+  font-size: 1.1rem;
+}
+
+.simple-job-card .MuiButton-text {
+  color: #1976d2 !important;
+  font-weight: 500;
+  font-size: 0.98rem;
+  padding-left: 0;
+  text-transform: none;
+}
+
+.job-grid .MuiGrid-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.job-grid .MuiGrid-item {
+  display: flex;
+}
+
+.simple-job-card.MuiCard-root {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 370px; /* Adjust as needed */
+  height: 100%;
+}
+
+.simple-job-card .MuiCardContent-root {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.simple-job-card .MuiButton-text {
+  margin-top: auto;
+}
