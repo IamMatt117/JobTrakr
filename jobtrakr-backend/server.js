@@ -3,11 +3,15 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const cors = require('cors');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3000;
 
 // Allow CORS from your frontend (adjust the origin as needed)
 app.use(cors({
-  origin: 'http://localhost:3000', // Change this if your frontend runs elsewhere
+  origin: [
+    'http://localhost:3000',
+    'https://jobtrakr-345c3.web.app', // Your Firebase Hosting URL
+    'https://jobtrakr-345c3.firebaseapp.com'
+  ],
 }));
 
 let savedJobs = []; // Replace with DB in production
@@ -66,5 +70,5 @@ app.patch('/api/saved-jobs/:id', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
-const JSEARCH_API_URL = '/api/jobs';
+const JSEARCH_API_URL = 'https://srv-d0ho20buibrs73diej70.render.com/api/jobs';
 
 export const jobService = {
   async getJobs() {
